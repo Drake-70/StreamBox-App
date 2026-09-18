@@ -37,7 +37,11 @@ function Subscribe() {
     setMessage("");
     try {
       track("subscribe_intent", { category: "premium" });
+      window.CMO?.startFunnel?.("subscribe");
+      window.CMO?.stepFunnel?.("subscribe", "intent");
       const res = await api.post("/payment/subscribe", { phone, months: 1 });
+      window.CMO?.stepFunnel?.("subscribe", "initiated");
+      window.CMO?.identify?.(phone);
       setPaymentRef(res.data.payment.reference);
       setUssd(res.data.payment.ussdCode || "");
       setMessage(
@@ -59,6 +63,8 @@ function Subscribe() {
         if (res.data.status === "SUCCESSFUL") {
           setPolling(false);
           track("subscribe_success", { category: "premium" });
+          window.CMO?.stepFunnel?.("subscribe", "paid");
+          window.CMO?.completeFunnel?.("subscribe");
           setMessage("Payment successful! Premium is now active.");
           setPremium((prev) => ({ ...prev, active: true }));
           await loadStatus();

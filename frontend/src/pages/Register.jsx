@@ -29,6 +29,9 @@ function Register() {
     setLoading(true);
     try {
       await register(username, email, password, ageGroup, parentalPin || undefined);
+      window.CMO?.startFunnel?.("signup");
+      window.CMO?.stepFunnel?.("signup", "submitted");
+      window.CMO?.completeFunnel?.("signup");
       navigate("/home");
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed");

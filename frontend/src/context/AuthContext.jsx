@@ -16,6 +16,7 @@ export function AuthProvider({ children }) {
         const parsed = JSON.parse(stored);
         setUser(parsed);
         setAuthToken(parsed.token);
+        if (parsed.email) window.CMO?.identify?.(parsed.email);
       } catch (e) {
         localStorage.removeItem(STORAGE_KEY);
       }
@@ -25,6 +26,7 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (user) {
+      if (user.email) window.CMO?.identify?.(user.email);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
       setAuthToken(user.token);
     } else {
