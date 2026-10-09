@@ -1,11 +1,13 @@
-services:
+﻿services:
   - type: web
     name: streambox-api
-    env: node
+    runtime: docker
     region: frankfurt
     plan: free
-    buildCommand: cd backend && npm ci
-    startCommand: cd backend && node server.js
+    repo: https://github.com/Drake-70/StreamBox-App
+    branch: main
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
     healthCheckPath: /api/auth/me
     envVars:
       - key: NODE_ENV
