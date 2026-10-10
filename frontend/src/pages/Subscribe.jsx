@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import api from "../services/api";
 import { track } from "../services/analytics";
 import { useAuth } from "../context/AuthContext";
@@ -17,12 +17,13 @@ function Subscribe() {
   const [ussd, setUssd] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [elapsed, setElapsed] = useState(0);
 
   const loadStatus = async () => {
     try {
       const res = await api.get("/payment/me");
       setPremium(res.data.premium);
-      setPricePerMonth(res.data.pricePerMonth);
+      setPricePerMonth(res.data.pricePerMonth || 2000);
       setPayments(res.data.payments || []);
     } catch (e) {}
   };
@@ -31,22 +32,41 @@ function Subscribe() {
     loadStatus();
   }, []);
 
+  useEffect(() => {
+    let t;
+    if (polling) {
+      t = setInterval(() => setElapsed((s) => s + 1), 1000);
+    } else {
+      setElapsed(0);
+    }
+    return () => clearInterval(t);
+  }, [polling]);
+
+  const formatPhone = (v) => {
+    let s = v.replace(/[^0-9+]/g, "");
+    if (s.startsWith("+237")) s = "237" + s.slice(4).replace(/^0+/, "");
+    if (s.startsWith("237") && s.length > 3) s = "237" + s.slice(3).replace(/^0+/, "");
+    if (!s.startsWith("237") && /^\d{9}$/.test(s)) s = "237" + s;
+    return s;
+  };
+
   const startPayment = async (e) => {
     e.preventDefault();
     setError("");
     setMessage("");
+    setUssd("");
     try {
       track("subscribe_intent", { category: "premium" });
       window.CMO?.startFunnel?.("subscribe");
       window.CMO?.stepFunnel?.("subscribe", "intent");
-      const res = await api.post("/payment/subscribe", { phone, months: 1 });
+      const res = await api.post("/payment/subscribe", { phone: formatPhone(phone), months: 1 });
       window.CMO?.stepFunnel?.("subscribe", "initiated");
       window.CMO?.identify?.(phone);
       setPaymentRef(res.data.payment.reference);
       setUssd(res.data.payment.ussdCode || "");
       setMessage(
         res.data.message ||
-          "Check your phone and approve the payment using the instructions sent."
+          "Check your phone and approve the Mobile Money prompt to complete payment."
       );
       setPolling(true);
       await pollStatus(res.data.payment.reference);
@@ -56,8 +76,8 @@ function Subscribe() {
   };
 
   const pollStatus = async (reference) => {
-    for (let i = 0; i < 30; i++) {
-      await new Promise((r) => setTimeout(r, 3000));
+    for (let i = 0; i < 40; i++) {
+      await new Promise((r) => setTimeout(r, 2500));
       try {
         const res = await api.get(`/payment/status/${reference}`);
         if (res.data.status === "SUCCESSFUL") {
@@ -78,7 +98,14 @@ function Subscribe() {
       } catch (e) {}
     }
     setPolling(false);
-    setMessage("Payment is taking longer than expected. Check your phone and refresh.");
+    setMessage("Still waiting for approval. Check your phone or retry.");
+  };
+
+  const copyUssd = async () => {
+    if (!ussd) return;
+    try {
+      await navigator.clipboard.writeText(ussd);
+    } catch (e) {}
   };
 
   const formatDate = (d) => (d ? new Date(d).toLocaleDateString() : "—");
@@ -86,15 +113,12 @@ function Subscribe() {
   return (
     <div className="subscribe-page">
       <div className="subscribe-hero">
-        <h1>StreamBox <span className="premium-tag">Premium</span></h1>
+        <h1>
+          Upgrade to <span className="premium-tag">StreamBox Premium</span>
+        </h1>
         <p>
-          Unlock exclusive Cameroonian premieres, premium movies and ad-free viewing with
-          Mobile Money (MTN / Orange).
+          Unlock unlimited access to Cameroonian premieres, premium movies, and ad-free viewing with MTN/Orange Mobile Money.
         </p>
-        <div className="price-card">
-          <span className="price-amount">{pricePerMonth} XAF</span>
-          <span className="price-period">/ month</span>
-        </div>
       </div>
 
       {premium?.active && (
@@ -104,56 +128,115 @@ function Subscribe() {
         </div>
       )}
 
-      <div className="subscribe-form">
-        <label>MTN / Orange Mobile Money number</label>
-        <input
-          type="tel"
-          placeholder="2376XXXXXXXX"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          disabled={polling}
-        />
-        <button className="btn-primary" onClick={startPayment} disabled={polling || !phone}>
-          {polling ? "Waiting for approval..." : "Pay with Mobile Money"}
-        </button>
-        {ussd && <p className="ussd-hint">Approve on your phone (USSD: {ussd}).</p>}
-        {message && <p className="sync-msg">{message}</p>}
-        {error && <p className="error-msg">{error}</p>}
+      <div className="subscribe-grid">
+        <div className="subscribe-card">
+          <h2>Choose Plan</h2>
+          <div className="plan-row">
+            <div className="plan-option plan-option-active">
+              <div className="plan-option-title">Monthly</div>
+              <div className="plan-option-price">{pricePerMonth} XAF</div>
+              <div className="plan-option-sub">/month</div>
+            </div>
+          </div>
+
+          <form className="subscribe-form" onSubmit={startPayment}>
+            <label htmlFor="phone">MTN / Orange Mobile Money number</label>
+            <input
+              id="phone"
+              type="tel"
+              inputMode="numeric"
+              placeholder="2376XXXXXXXX"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              disabled={polling}
+              required
+            />
+            <p className="helper-text">Format: 237 followed by your 9-digit number (or enter 6XXXXXXXX).</p>
+
+            <button className="btn btn-primary btn-block" type="submit" disabled={polling || !phone}>
+              {polling ? "Waiting for approval..." : "Pay with Mobile Money"}
+            </button>
+          </form>
+
+          {ussd && (
+            <div className="ussd-box">
+              <div className="ussd-label">USSD to approve</div>
+              <div className="ussd-code">{ussd}</div>
+              <button type="button" className="link-btn" onClick={copyUssd}>
+                Copy USSD
+              </button>
+            </div>
+          )}
+
+          {polling && (
+            <div className="poll-info">
+              <div className="poll-bar" />
+              <p>Waiting for Mobile Money approval... ({elapsed}s)</p>
+            </div>
+          )}
+
+          {message && <div className="success">{message}</div>}
+          {error && <div className="error">{error}</div>}
+        </div>
+
+        <div className="subscribe-card">
+          <h2>Premium Benefits</h2>
+          <ul className="benefits-list">
+            <li>✓ Unlimited access to premium catalogue</li>
+            <li>✓ Ad-free viewing experience</li>
+            <li>✓ Early access to new Cameroonian releases</li>
+            <li>✓ Watch on any device</li>
+            <li>✓ Secure Mobile Money payments</li>
+            <li>✓ Cancel anytime</li>
+          </ul>
+
+          <div className="supported">
+            <span>Supported:</span>
+            <div className="supported-logos">
+              <span>MTN</span>
+              <span>Orange</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="payments-history">
-        <h3>Payment History</h3>
+        <h2>Payment History</h2>
         {payments.length === 0 ? (
-          <p style={{ color: "#999" }}>No payments yet.</p>
+          <p className="muted">No payments yet.</p>
         ) : (
-          <table border="0" cellPadding="8" style={{ width: "100%" }}>
-            <thead>
-              <tr style={{ textAlign: "left", color: "#aaa" }}>
-                <th>Date</th>
-                <th>Reference</th>
-                <th>Amount</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {payments.map((p) => (
-                <tr key={p._id}>
-                  <td>{formatDate(p.createdAt)}</td>
-                  <td style={{ color: "#bbb", fontSize: "12px" }}>{p.reference}</td>
-                  <td>{p.amount} XAF</td>
-                  <td>
-                    <span className={`pay-status ${p.status.toLowerCase()}`}>{p.status}</span>
-                  </td>
+          <div className="table-wrap">
+            <table className="payments-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Reference</th>
+                  <th>Amount</th>
+                  <th>Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {payments.map((p) => (
+                  <tr key={p._id}>
+                    <td>{formatDate(p.createdAt)}</td>
+                    <td className="ref-cell">{p.reference}</td>
+                    <td>{p.amount} XAF</td>
+                    <td>
+                      <span className={`pay-status ${p.status?.toLowerCase()}`}>{p.status}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
-      <button className="btn-logout btn" style={{ marginTop: "20px" }} onClick={() => navigate("/home")}>
-        Back to Home
-      </button>
+      <div className="subscribe-actions">
+        <Link to="/" className="btn btn-secondary">
+          Back to Home
+        </Link>
+      </div>
     </div>
   );
 }
