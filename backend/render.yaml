@@ -8,7 +8,7 @@
     branch: main
     dockerfilePath: backend/Dockerfile
     dockerContext: .
-    healthCheckPath: /health
+    healthCheckPath: /api/auth/me
     envVars:
       - key: NODE_ENV
         value: production
