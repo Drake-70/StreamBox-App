@@ -34,8 +34,13 @@ app.use(
       return callback(null, false);
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    optionsSuccessStatus: 204,
   })
 );
+// Handle preflight for all routes
+app.options("*", cors());
 app.use(morgan("dev"));
 app.use(express.json({ limit: "1mb" }));
 

@@ -45,7 +45,8 @@ const userSchema = new mongoose.Schema(
       active: { type: Boolean, default: false },
       startedAt: { type: Date, default: null },
       expiresAt: { type: Date, default: null },
-    },    watchlist: [{ type: mongoose.Schema.Types.ObjectId, ref: "Content" }],
+    },
+    watchlist: [{ type: mongoose.Schema.Types.ObjectId, ref: "Content" }],
     watchHistory: [
       {
         content: { type: mongoose.Schema.Types.ObjectId, ref: "Content" },
@@ -54,6 +55,13 @@ const userSchema = new mongoose.Schema(
         duration: { type: Number, default: 0 },
       },
     ],
+    emailVerified: { type: Boolean, default: false },
+    verificationCode: { type: String, default: null },
+    verificationCodeExpiresAt: { type: Date, default: null },
+    verificationAttempts: { type: Number, default: 0 },
+    resetCode: { type: String, default: null },
+    resetCodeExpiresAt: { type: Date, default: null },
+    resetAttempts: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
