@@ -4,6 +4,45 @@ import api from "../services/api";
 import { track } from "../services/analytics";
 import { useAuth } from "../context/AuthContext";
 
+const PLANS = [
+  {
+    id: "monthly",
+    months: 1,
+    label: "Monthly",
+    price: 2000,
+    period: "/month",
+    badge: null,
+    perMonth: 2000,
+  },
+  {
+    id: "quarterly",
+    months: 3,
+    label: "Quarterly",
+    price: 5400,
+    period: "/3 months",
+    badge: "Save 10%",
+    perMonth: 1800,
+  },
+  {
+    id: "biannual",
+    months: 6,
+    label: "Biannual",
+    price: 10800,
+    period: "/6 months",
+    badge: "Save 10%",
+    perMonth: 1800,
+  },
+  {
+    id: "yearly",
+    months: 12,
+    label: "Yearly",
+    price: 19200,
+    period: "/year",
+    badge: "Best Value • Save 20%",
+    perMonth: 1600,
+  },
+];
+
 function Subscribe() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -18,6 +57,7 @@ function Subscribe() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [elapsed, setElapsed] = useState(0);
+  const [selected, setSelected] = useState(PLANS[0]);
 
   const loadStatus = async () => {
     try {
@@ -55,11 +95,15 @@ function Subscribe() {
     setError("");
     setMessage("");
     setUssd("");
+    setLoading(true);
     try {
-      track("subscribe_intent", { category: "premium" });
+      track("subscribe_intent", { category: "premium", months: selected.months, plan: selected.id });
       window.CMO?.startFunnel?.("subscribe");
       window.CMO?.stepFunnel?.("subscribe", "intent");
-      const res = await api.post("/payment/subscribe", { phone: formatPhone(phone), months: 1 });
+      const res = await api.post("/payment/subscribe", {
+        phone: formatPhone(phone),
+        months: selected.months,
+      });
       window.CMO?.stepFunnel?.("subscribe", "initiated");
       window.CMO?.identify?.(phone);
       setPaymentRef(res.data.payment.reference);
@@ -72,17 +116,19 @@ function Subscribe() {
       await pollStatus(res.data.payment.reference);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to start payment.");
+    } finally {
+      setLoading(false);
     }
   };
 
   const pollStatus = async (reference) => {
-    for (let i = 0; i < 40; i++) {
-      await new Promise((r) => setTimeout(r, 2500));
+    for (let i = 0; i < 50; i++) {
+      await new Promise((r) => setTimeout(r, 2000));
       try {
         const res = await api.get(`/payment/status/${reference}`);
         if (res.data.status === "SUCCESSFUL") {
           setPolling(false);
-          track("subscribe_success", { category: "premium" });
+          track("subscribe_success", { category: "premium", months: selected.months });
           window.CMO?.stepFunnel?.("subscribe", "paid");
           window.CMO?.completeFunnel?.("subscribe");
           setMessage("Payment successful! Premium is now active.");
@@ -109,6 +155,9 @@ function Subscribe() {
   };
 
   const formatDate = (d) => (d ? new Date(d).toLocaleDateString() : "—");
+  const daysLeft = premium?.expiresAt
+    ? Math.max(0, Math.ceil((new Date(premium.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : null;
 
   return (
     <div className="subscribe-page">
@@ -117,25 +166,52 @@ function Subscribe() {
           Upgrade to <span className="premium-tag">StreamBox Premium</span>
         </h1>
         <p>
-          Unlock unlimited access to Cameroonian premieres, premium movies, and ad-free viewing with MTN/Orange Mobile Money.
+          Unlimited Cameroonian premieres, ad-free viewing, and early access — pay securely with MTN or Orange Mobile Money.
         </p>
       </div>
 
       {premium?.active && (
         <div className="premium-active-box">
           <strong>You are a Premium member.</strong>{" "}
-          <span>Valid until {formatDate(premium.expiresAt)}.</span>
+          <span>
+            Valid until {formatDate(premium.expiresAt)}
+            {daysLeft !== null && daysLeft <= 7 && ` • ${daysLeft} day${daysLeft === 1 ? "" : "s"} left`}
+          </span>
         </div>
       )}
 
       <div className="subscribe-grid">
         <div className="subscribe-card">
-          <h2>Choose Plan</h2>
+          <h2>Choose your plan</h2>
           <div className="plan-row">
-            <div className="plan-option plan-option-active">
-              <div className="plan-option-title">Monthly</div>
-              <div className="plan-option-price">{pricePerMonth} XAF</div>
-              <div className="plan-option-sub">/month</div>
+            {PLANS.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                className={`plan-option ${selected.id === p.id ? "plan-option-active" : ""}`}
+                onClick={() => setSelected(p)}
+              >
+                {p.badge && <span className="plan-badge">{p.badge}</span>}
+                <div className="plan-option-title">{p.label}</div>
+                <div className="plan-option-price">{p.price.toLocaleString()} XAF</div>
+                <div className="plan-option-sub">{p.period}</div>
+                <div className="plan-option-permonth">{p.perMonth.toLocaleString()} XAF / mo</div>
+              </button>
+            ))}
+          </div>
+
+          <div className="plan-summary">
+            <div>
+              <span className="plan-summary-label">Total due</span>
+              <span className="plan-summary-value">{selected.price.toLocaleString()} XAF</span>
+            </div>
+            <div>
+              <span className="plan-summary-label">Billing</span>
+              <span className="plan-summary-value">{selected.months === 1 ? "Monthly" : `${selected.months} months`}</span>
+            </div>
+            <div>
+              <span className="plan-summary-label">Effective</span>
+              <span className="plan-summary-value">{selected.perMonth.toLocaleString()} XAF/mo</span>
             </div>
           </div>
 
@@ -153,8 +229,8 @@ function Subscribe() {
             />
             <p className="helper-text">Format: 237 followed by your 9-digit number (or enter 6XXXXXXXX).</p>
 
-            <button className="btn btn-primary btn-block" type="submit" disabled={polling || !phone}>
-              {polling ? "Waiting for approval..." : "Pay with Mobile Money"}
+            <button className="btn btn-primary btn-block" type="submit" disabled={polling || !phone || loading}>
+              {polling ? "Waiting for approval..." : loading ? "Initiating..." : `Pay ${selected.price.toLocaleString()} XAF`}
             </button>
           </form>
 
@@ -165,6 +241,7 @@ function Subscribe() {
               <button type="button" className="link-btn" onClick={copyUssd}>
                 Copy USSD
               </button>
+              <p className="helper-text">Approve the prompt on your phone to complete payment.</p>
             </div>
           )}
 
@@ -180,22 +257,26 @@ function Subscribe() {
         </div>
 
         <div className="subscribe-card">
-          <h2>Premium Benefits</h2>
+          <h2>Why go Premium</h2>
           <ul className="benefits-list">
-            <li>✓ Unlimited access to premium catalogue</li>
+            <li>✓ Unlimited access to the full catalogue</li>
             <li>✓ Ad-free viewing experience</li>
             <li>✓ Early access to new Cameroonian releases</li>
-            <li>✓ Watch on any device</li>
-            <li>✓ Secure Mobile Money payments</li>
-            <li>✓ Cancel anytime</li>
+            <li>✓ Watch on phone, tablet or laptop</li>
+            <li>✓ Secure MTN/Orange Mobile Money payments</li>
+            <li>✓ Cancel anytime — no hidden fees</li>
           </ul>
 
           <div className="supported">
-            <span>Supported:</span>
+            <span>Supported networks</span>
             <div className="supported-logos">
-              <span>MTN</span>
-              <span>Orange</span>
+              <span>MTN Mobile Money</span>
+              <span>Orange Money</span>
             </div>
+          </div>
+
+          <div className="trust-note">
+            <p>Pay securely in XAF. Subscriptions renew at the end of your billing period. You can cancel anytime.</p>
           </div>
         </div>
       </div>
