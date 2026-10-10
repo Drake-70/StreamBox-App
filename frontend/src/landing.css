@@ -1,0 +1,400 @@
+/* ============================================================
+   StreamBox — landing & auth styles
+   These classes were introduced by the pages rewritten in commit
+   5b5e04a (Landing/Login/Register) but their CSS was never written
+   (the same commit truncated App.css from 2068 lines to 74).
+   Restored here so the marketing + auth pages render as designed.
+   Uses the Cameroonian palette tokens from App.css `:root`.
+   ============================================================ */
+
+/* ---- root app wrapper ---- */
+.app {
+  min-height: 100vh;
+  background: var(--cm-bg);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, var(--cm-red), #a80d1e);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+.btn-danger:hover { filter: brightness(1.1); }
+
+/* ---- landing navbar: secondary link menu ---- */
+.landing-nav-menu {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+/* ---- hero eyebrow pill ---- */
+.hero-eyebrow {
+  display: inline-block;
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: rgba(252, 209, 22, 0.12);
+  border: 1px solid rgba(252, 209, 22, 0.35);
+  color: var(--cm-yellow);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  margin-bottom: 20px;
+}
+
+/* ---- shared section subtitle ---- */
+.section-sub {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 17px;
+  line-height: 1.6;
+  max-width: 640px;
+  margin: -28px auto 48px;
+}
+
+/* =================== HOW IT WORKS =================== */
+.landing-how {
+  padding: 100px 48px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 28px;
+}
+.step-card {
+  background: var(--cm-surface);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 36px 32px;
+  transition: all 0.3s;
+}
+.step-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(0, 135, 81, 0.4);
+}
+.step-number {
+  font-size: 40px;
+  font-weight: 900;
+  line-height: 1;
+  margin-bottom: 18px;
+  background: linear-gradient(135deg, var(--cm-green), var(--cm-yellow));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.step-card h3 { font-size: 20px; margin-bottom: 10px; }
+.step-card p { color: rgba(255, 255, 255, 0.6); line-height: 1.6; font-size: 15px; }
+
+/* =================== PRICING =================== */
+.landing-pricing {
+  padding: 100px 48px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 28px;
+}
+.plan-card {
+  background: var(--cm-surface);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 40px 32px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s;
+}
+.plan-card:hover { transform: translateY(-4px); }
+.plan-card-hot {
+  border-color: var(--cm-green);
+  box-shadow: 0 0 0 1px var(--cm-green), 0 20px 60px rgba(0, 135, 81, 0.25);
+}
+.plan-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, var(--cm-green), var(--cm-green-dark));
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 6px 16px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.plan-card h3 { font-size: 22px; margin-bottom: 8px; }
+.plan-price { font-size: 40px; font-weight: 900; letter-spacing: -1px; }
+.plan-price span {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 4px;
+  letter-spacing: 0;
+}
+.plan-tagline {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 10px 0 22px;
+}
+.plan-features {
+  list-style: none;
+  margin: 0 0 28px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+.plan-features li {
+  position: relative;
+  padding-left: 26px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.5;
+}
+.plan-features li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--cm-green);
+  font-weight: 900;
+}
+.plan-cta {
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+}
+
+/* =================== TESTIMONIALS =================== */
+.landing-testimonials {
+  padding: 100px 48px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.testimonials-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 28px;
+}
+.testimonial-card {
+  background: var(--cm-surface);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 32px;
+}
+.testimonial-quote {
+  font-size: 56px;
+  line-height: 0.8;
+  color: var(--cm-green);
+  opacity: 0.5;
+  font-family: Georgia, "Times New Roman", serif;
+  margin-bottom: 10px;
+}
+.testimonial-card p {
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.7;
+  font-size: 15px;
+  font-style: italic;
+}
+.testimonial-author {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.testimonial-author strong { font-size: 15px; }
+.testimonial-author span { font-size: 13px; color: rgba(255, 255, 255, 0.5); }
+
+/* =================== FAQ =================== */
+.landing-faq {
+  padding: 100px 48px;
+  max-width: 820px;
+  margin: 0 auto;
+}
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.faq-item {
+  background: var(--cm-surface);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  padding: 18px 22px;
+  transition: border-color 0.2s;
+}
+.faq-item[open] { border-color: rgba(0, 135, 81, 0.4); }
+.faq-item summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 16px;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::after {
+  content: "+";
+  color: var(--cm-green);
+  font-size: 22px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.faq-item[open] summary::after { content: "–"; }
+.faq-item p {
+  margin-top: 14px;
+  color: rgba(255, 255, 255, 0.62);
+  line-height: 1.7;
+  font-size: 15px;
+}
+
+/* =================== CTA BAND =================== */
+.landing-cta-band {
+  padding: 90px 48px;
+  background:
+    linear-gradient(135deg, rgba(0, 135, 81, 0.18), rgba(206, 17, 38, 0.18)),
+    var(--cm-surface);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.cta-band-inner {
+  max-width: 760px;
+  margin: 0 auto;
+  text-align: center;
+}
+.cta-band-inner h2 {
+  font-size: 36px;
+  font-weight: 900;
+  letter-spacing: -1px;
+  margin-bottom: 16px;
+}
+.cta-band-inner p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 18px;
+  line-height: 1.6;
+  margin-bottom: 32px;
+}
+
+/* =================== FOOTER (column layout) =================== */
+.footer-columns {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1fr 1.2fr;
+  gap: 40px;
+  max-width: 1100px;
+  margin: 0 auto 40px;
+  text-align: left;
+  position: relative;
+  z-index: 1;
+}
+.footer-col h4 { font-size: 15px; margin-bottom: 16px; color: #fff; }
+.footer-col-about .footer-logo { font-size: 24px; font-weight: 900; margin-bottom: 12px; }
+.footer-note {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 14px;
+  line-height: 1.6;
+  margin-top: 12px;
+}
+.footer-links-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: flex-start;
+  margin-bottom: 0;
+}
+.footer-links-col a { color: rgba(255, 255, 255, 0.65); font-size: 14px; transition: color 0.2s; }
+.footer-links-col a:hover { color: var(--cm-green); }
+.footer-contact { color: rgba(255, 255, 255, 0.65); font-size: 14px; }
+
+/* =================== AUTH PAGES =================== */
+.auth-nav {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 48px;
+  z-index: 2;
+}
+.auth-nav-back { color: rgba(255, 255, 255, 0.65); font-size: 14px; transition: color 0.2s; }
+.auth-nav-back:hover { color: #fff; }
+.auth-brand { max-width: 420px; }
+.auth-brand h2 {
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: -0.8px;
+  line-height: 1.2;
+  margin-bottom: 14px;
+}
+.auth-brand-sub {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 15px;
+  line-height: 1.7;
+  margin-bottom: 28px;
+}
+.auth-perks {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.auth-perks li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+}
+.auth-perk-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: rgba(0, 135, 81, 0.15);
+  color: var(--cm-green);
+  flex-shrink: 0;
+}
+.auth-panel { position: relative; z-index: 1; }
+.auth-form-sub { color: rgba(255, 255, 255, 0.55); font-size: 14px; margin: 6px 0 24px; }
+
+/* =================== RESPONSIVE =================== */
+@media (max-width: 900px) {
+  .landing-nav-menu { display: none; }
+  .footer-columns { grid-template-columns: 1fr 1fr; text-align: center; }
+  .footer-col-about { grid-column: 1 / -1; text-align: center; }
+  .footer-links-col { align-items: center; }
+  .auth-nav { padding: 18px 20px; }
+  .landing-how,
+  .landing-pricing,
+  .landing-testimonials,
+  .landing-faq,
+  .landing-cta-band { padding: 64px 20px; }
+  .cta-band-inner h2 { font-size: 28px; }
+  .auth-brand { max-width: 100%; }
+}
+@media (max-width: 560px) {
+  .footer-columns { grid-template-columns: 1fr; }
+  .auth-brand { text-align: center; }
+  .auth-brand .auth-flag-bar { margin-left: auto; margin-right: auto; }
+  .auth-perks li { justify-content: center; }
+  .section-sub { font-size: 15px; margin-bottom: 32px; }
+}

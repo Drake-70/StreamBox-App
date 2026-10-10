@@ -7,7 +7,11 @@
     repo: https://github.com/Drake-70/StreamBox-App
     branch: main
     dockerfilePath: Dockerfile
+<<<<<<< HEAD
     dockerContext: backend
+=======
+    dockerContext: .
+>>>>>>> 5bc5f5f03fa8d93fb156d6fe24b0d9ffcca59c1c
     healthCheckPath: /api/auth/me
     envVars:
       - key: NODE_ENV

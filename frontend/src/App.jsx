@@ -17,6 +17,7 @@ import Admin from "./pages/Admin";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import "./App.css";
+import "./landing.css";
 
 function ProtectedRoute({ children }) {
   const { user } = useAuth();
