@@ -112,18 +112,29 @@ router.get("/status/:reference", protect, async (req, res) => {
 router.post("/webhook", async (req, res) => {
   try {
     const body = req.body || {};
-    const reference = body.reference || body.payment_reference || "";
+    const reference =
+      body.reference ||
+      body.payment_reference ||
+      body.transaction_reference ||
+      body.external_reference ||
+      (body.data && (body.data.reference || body.data.payment_reference)) ||
+      "";
+    if (!reference) {
+      return res.json({ received: true });
+    }
     const payment = await Payment.findOne({ reference });
     if (!payment) {
       return res.status(404).json({ message: "Payment not found for webhook" });
     }
-    const data = body.status
-      ? body
-      : await campay.getTransactionStatus(reference);
-    payment.status = data.status || payment.status;
+    const status =
+      body.status ||
+      (body.data && body.data.status) ||
+      payment.status;
+    payment.status = status;
+    payment.operator = body.operator || (body.data && body.data.operator) || payment.operator;
     await payment.save();
 
-    if (data.status === "SUCCESSFUL") {
+    if (status === "SUCCESSFUL" && payment.status !== "SUCCESSFUL") {
       const User = require("../models/User");
       const user = await User.findById(payment.user);
       if (user) {
