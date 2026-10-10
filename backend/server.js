@@ -39,6 +39,17 @@ app.use(
 app.use(morgan("dev"));
 app.use(express.json({ limit: "1mb" }));
 
+// Public health endpoint for Render's health check. Must stay cheap, unauthed
+// and outside the rate limiter so platform probes are never throttled.
+app.get("/health", (req, res) => {
+  const states = ["disconnected", "connected", "connecting", "disconnecting"];
+  res.status(200).json({
+    status: "ok",
+    mongo: states[mongoose.connection.readyState] || "unknown",
+    uptime: Math.round(process.uptime()),
+  });
+});
+
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
 app.use("/api/", limiter);
 
@@ -57,24 +68,6 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-// Retry the initial connection with backoff instead of crashing immediately.
-// The Camtel egress IP is dynamic, so a transient Atlas network/whitelist blip
-// at startup should not take the API down for good.
-async function connectWithRetry(retries = 20, delayMs = 5000) {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      await mongoose.connect(process.env.MONGODB_URI);
-      console.log("MongoDB connected");
-      return true;
-    } catch (err) {
-      console.error(`MongoDB connection attempt ${attempt}/${retries} failed:`, err.message);
-      if (attempt === retries) return false;
-      await new Promise((r) => setTimeout(r, delayMs));
-    }
-  }
-  return false;
-}
-
 mongoose.connection.on("disconnected", () => {
   console.error("[mongo] Connection disconnected — waiting for mongoose reconnect");
 });
@@ -82,14 +75,15 @@ mongoose.connection.on("error", (err) => {
   console.error("[mongo] Connection error:", err.message);
 });
 
-(async () => {
-  const ok = await connectWithRetry();
-  if (!ok) {
-    console.error("Could not connect to MongoDB after retries. Exiting.");
-    process.exit(1);
-  }
+// Bind the port immediately so Render's health check can pass during cold
+// starts and while MongoDB is still connecting/reconnecting (the Camtel egress
+// IP is dynamic, so transient Atlas network/whitelist blips are expected).
+app.listen(PORT, () => console.log(`StreamBox server running on port ${PORT}`));
 
-  app.listen(PORT, () => console.log(`StreamBox server running on port ${PORT}`));
+let cronsStarted = false;
+function startCrons() {
+  if (cronsStarted) return;
+  cronsStarted = true;
 
   // Daily content refresh: fetch fresh Cameroonian videos from YouTube and
   // grow the catalog (adds new titles, keeps existing). Runs at 03:00 daily.
@@ -122,4 +116,21 @@ mongoose.connection.on("error", (err) => {
   });
   runExpiry();
   console.log("[expiry] Scheduled hourly premium-expiry check");
+}
+
+// Never exit on Mongo failure: keep retrying with a 5s backoff. The HTTP server
+// stays up (so health checks pass) and the app recovers as soon as Atlas
+// accepts the connection again.
+(async () => {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await mongoose.connect(process.env.MONGODB_URI);
+      console.log("MongoDB connected");
+      startCrons();
+      return;
+    } catch (err) {
+      console.error(`MongoDB connection attempt ${attempt} failed:`, err.message);
+      await new Promise((r) => setTimeout(r, 5000));
+    }
+  }
 })();

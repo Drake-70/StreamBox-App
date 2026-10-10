@@ -1,16 +1,18 @@
 # Backend Dockerfile
+# Build context is the repo ROOT (see render.yaml: dockerContext: .), so the
+# backend files must be referenced under backend/.
 FROM node:22-alpine
 
 WORKDIR /app
 
 # Install dependencies first for better caching
-COPY package*.json ./
+COPY backend/package*.json ./
 RUN npm ci --omit=dev
 
-# Copy source
-COPY . .
+# Copy backend source
+COPY backend/. .
 
-# Expose API port (will be overridden by PORT env)
+# Expose API port (overridden by the PORT env var)
 EXPOSE 5000
 
 ENV NODE_ENV=production
