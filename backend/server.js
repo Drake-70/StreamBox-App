@@ -14,6 +14,7 @@ const paymentRoutes = require("./routes/payment");
 const adminRoutes = require("./routes/admin");
 const ratingRoutes = require("./routes/ratings");
 const analyticsRoutes = require("./routes/analytics");
+const cronRoutes = require("./routes/cron");
 const contentSync = require("./services/contentSync");
 const { expireSubscriptions } = require("./services/subscriptionExpiry");
 
@@ -70,6 +71,10 @@ app.get("/health", (req, res) => {
     uptime: Math.round(process.uptime()),
   });
 });
+
+// External cron trigger. Mounted before the rate limiter so scheduled runs are
+// never throttled. Requires the CRON_SECRET header (see routes/cron.js).
+app.use("/api/cron", cronRoutes);
 
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
 app.use("/api/", limiter);

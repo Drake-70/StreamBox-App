@@ -47,4 +47,8 @@
         value: "Africa/Douala"
       - key: EXPIRY_CRON
         value: "0 * * * *"
+      # Secret for the external cron trigger: POST /api/cron/run with header
+      # `x-cron-secret: <value>`. Leave unset to disable the endpoint.
+      - key: CRON_SECRET
+        sync: false
     autoDeploy: true
