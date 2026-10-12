@@ -19,18 +19,36 @@ const { expireSubscriptions } = require("./services/subscriptionExpiry");
 
 const app = express();
 
+// Render (and most PaaS) sit behind a proxy; trust the first hop so rate
+// limiting and req.ip use the real client address.
+app.set("trust proxy", 1);
+
 app.use(helmet());
 
-// CORS origin is env-driven so the same build works in dev (localhost) and
-// after deployment to a real domain. Comma-separated list supported.
-const corsOrigins = (process.env.CORS_ORIGIN || "http://localhost:3000")
+// CORS is env-driven (comma-separated CORS_ORIGIN) but ships with working
+// defaults so the deployed frontend works without extra configuration.
+// Previews of the same Vercel project are allowed via the regex below.
+const envOrigins = (process.env.CORS_ORIGIN || "")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
+
+const defaultOrigins = [
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "http://localhost:5180",
+  "https://stream-box-app.vercel.app",
+];
+
+const allowedOrigins = new Set([...defaultOrigins, ...envOrigins]);
+const vercelPreview = /^https:\/\/stream-box-app[a-z0-9-]*\.vercel\.app$/i;
+const isAllowedOrigin = (origin) =>
+  allowedOrigins.has(origin) || vercelPreview.test(origin);
+
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin || corsOrigins.includes(origin)) return callback(null, true);
+      if (!origin || isAllowedOrigin(origin)) return callback(null, true);
       return callback(null, false);
     },
     credentials: true,
@@ -39,8 +57,6 @@ app.use(
     optionsSuccessStatus: 204,
   })
 );
-// Handle preflight for all routes
-app.options("*", cors());
 app.use(morgan("dev"));
 app.use(express.json({ limit: "1mb" }));
 

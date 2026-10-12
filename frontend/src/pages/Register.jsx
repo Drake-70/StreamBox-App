@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import AuthLayout from "../layouts/AuthLayout";
+import { useAuth } from "../context/AuthContext";
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -15,6 +16,7 @@ function Register() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { setSession } = useAuth();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -26,7 +28,14 @@ function Register() {
     setLoading(true);
     setError("");
     try {
-      await api.post("/auth/register", formData);
+      const res = await api.post("/auth/register", formData);
+      if (res.data?.token) {
+        // Email delivery isn't configured on the server, so the account is
+        // verified automatically and the user is signed straight in.
+        setSession(res.data);
+        navigate("/", { replace: true });
+        return;
+      }
       navigate("/verify-email", { state: { email: formData.email } });
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed. Please try again.");

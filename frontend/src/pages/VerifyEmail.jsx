@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import api from "../services/api";
-import { setAuthToken } from "../services/api";
 import AuthLayout from "../layouts/AuthLayout";
+import { useAuth } from "../context/AuthContext";
 
 function VerifyEmail() {
   const navigate = useNavigate();
@@ -15,6 +15,7 @@ function VerifyEmail() {
   const [resendLoading, setResendLoading] = useState(false);
   const [countdown, setCountdown] = useState(60);
   const inputsRef = useRef([]);
+  const { setSession } = useAuth();
 
   useEffect(() => {
     if (!email) return;
@@ -67,8 +68,7 @@ function VerifyEmail() {
     try {
       const res = await api.post("/auth/verify-email", { email, code: getCodeString() });
       if (res.data.token) {
-        setAuthToken(res.data.token);
-        localStorage.setItem("streambox_token", res.data.token);
+        setSession({ ...res.data.user, token: res.data.token });
       }
       setMessage(res.data.message || "Email verified");
       setTimeout(() => navigate("/"), 1000);

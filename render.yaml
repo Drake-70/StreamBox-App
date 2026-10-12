@@ -7,12 +7,8 @@
     repo: https://github.com/Drake-70/StreamBox-App
     branch: main
     dockerfilePath: Dockerfile
-<<<<<<< HEAD
-    dockerContext: backend
-=======
     dockerContext: .
->>>>>>> 5bc5f5f03fa8d93fb156d6fe24b0d9ffcca59c1c
-    healthCheckPath: /api/auth/me
+    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
@@ -25,6 +21,17 @@
       - key: JWT_SECRET
         sync: false
       - key: YOUTUBE_API_KEY
+        sync: false
+      # Optional transactional email (verification / password reset codes).
+      # Set ONE of RESEND_API_KEY or BREVO_API_KEY to enable real emails.
+      # Without them, new accounts are auto-verified so signup still works.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: MAIL_FROM_EMAIL
+        sync: false
+      - key: MAIL_FROM_NAME
         sync: false
       - key: CAMPAY_MODE
         sync: false

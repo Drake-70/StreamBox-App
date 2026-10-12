@@ -49,8 +49,14 @@ export function AuthProvider({ children }) {
       ageGroup,
       parentalPin,
     });
-    setUser(res.data);
+    if (res.data?.token) setUser(res.data);
     return res.data;
+  };
+
+  // Store a session directly (used when registration auto-verifies an account).
+  const setSession = (userData) => {
+    setUser(userData);
+    return userData;
   };
 
   const logout = () => {
@@ -84,6 +90,7 @@ export function AuthProvider({ children }) {
         user,
         login,
         register,
+        setSession,
         logout,
         updateAgeGroup,
         updateParentalPin,

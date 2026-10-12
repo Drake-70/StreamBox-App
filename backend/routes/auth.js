@@ -2,6 +2,7 @@ const express = require("express");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { protect } = require("../middleware/auth");
+const mailer = require("../services/mailer");
 
 const router = express.Router();
 
@@ -12,6 +13,19 @@ const generateToken = (id) => {
 const generateCode = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
+
+// Shape the user object the frontend stores as its session.
+const userPayload = (user, token) => ({
+  _id: user._id,
+  username: user.username,
+  email: user.email,
+  ageGroup: user.ageGroup,
+  avatar: user.avatar,
+  parentalControl: { enabled: user.hasParentalPin() },
+  premium: { active: user.premium?.active || false },
+  role: user.role || "user",
+  token,
+});
 
 router.post("/register", async (req, res) => {
   try {
@@ -52,8 +66,26 @@ router.post("/register", async (req, res) => {
       await user.save();
     }
 
+    const emailSent = await mailer.sendVerificationCode(email, code);
+
+    if (!emailSent) {
+      // No email provider is configured, so a verification code can never reach
+      // the user. Don't lock them out — mark the account verified and sign in.
+      user.emailVerified = true;
+      user.verificationCode = null;
+      user.verificationCodeExpiresAt = null;
+      user.verificationAttempts = 0;
+      await user.save();
+      return res.status(201).json({
+        ...userPayload(user, generateToken(user._id)),
+        emailSent: false,
+        message: "Account created. You're signed in.",
+      });
+    }
+
     res.status(201).json({
       message: "Registration successful. Please verify your email with the 6-digit code.",
+      emailSent: true,
       user: {
         _id: user._id,
         email: user.email,
@@ -118,6 +150,12 @@ router.post("/resend-verification", async (req, res) => {
     user.verificationCodeExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
     user.verificationAttempts = 0;
     await user.save();
+    const emailSent = await mailer.sendVerificationCode(email, code);
+    if (!emailSent) {
+      return res.status(503).json({
+        message: "Email delivery is not configured on the server. Please contact support.",
+      });
+    }
     res.json({ message: "Verification code sent" });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -132,17 +170,7 @@ router.post("/login", async (req, res) => {
       if (!user.emailVerified) {
         return res.status(403).json({ message: "Please verify your email first" });
       }
-      res.json({
-        _id: user._id,
-        username: user.username,
-        email: user.email,
-        ageGroup: user.ageGroup,
-        avatar: user.avatar,
-        parentalControl: { enabled: user.hasParentalPin() },
-        premium: { active: user.premium?.active || false },
-        role: user.role || "user",
-        token: generateToken(user._id),
-      });
+      res.json(userPayload(user, generateToken(user._id)));
     } else {
       res.status(401).json({ message: "Invalid email or password" });
     }
@@ -156,13 +184,16 @@ router.post("/forgot-password", async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ message: "Email is required" });
     const user = await User.findOne({ email });
-    if (!user) return res.status(200).json({ message: "If account exists, reset code sent" });
+    if (!user) {
+      return res.status(200).json({ message: "If that account exists, a reset code has been sent." });
+    }
     const code = generateCode();
     user.resetCode = code;
     user.resetCodeExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
     user.resetAttempts = 0;
     await user.save();
-    res.json({ message: "Reset code sent to your email" });
+    await mailer.sendPasswordResetCode(email, code);
+    res.json({ message: "If that account exists, a reset code has been sent." });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
