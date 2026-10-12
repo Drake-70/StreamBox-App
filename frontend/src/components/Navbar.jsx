@@ -20,6 +20,11 @@ function Navbar() {
     setMenuOpen(false);
   }, [location.pathname]);
 
+  // Standalone marketing/legal pages render their own navigation.
+  if (!user && ["/", "/terms", "/privacy"].includes(location.pathname)) {
+    return null;
+  }
+
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
