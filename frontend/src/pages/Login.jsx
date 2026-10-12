@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import api, { setAuthToken } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import AuthLayout from "../layouts/AuthLayout";
 
@@ -18,11 +17,7 @@ function Login() {
     setLoading(true);
     setError("");
     try {
-      const res = await api.post("/auth/login", { email, password });
-      const { token } = res.data;
-      setAuthToken(token);
-      localStorage.setItem("streambox_token", token);
-      await login();
+      await login(email, password);
       navigate("/");
     } catch (err) {
       setError(err.response?.data?.message || "Login failed. Please check your credentials.");
